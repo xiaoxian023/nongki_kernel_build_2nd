@@ -1,4 +1,4 @@
-name: Build OnePlus 8T / 9R (Evolution X 16 A16)
+Name: Build OnePlus 8T / 9R (Evolution X 16 A16)
 
 on:
   workflow_dispatch:
@@ -8,7 +8,7 @@ env:
   DEVICE_NAME : "OnePlus 8T"
   DEVICE_CODENAME : "kebab"
 
-  # 编译指令优化：在此处追加 KCFLAGS="-Wno-error" 完美降级警告拦截，不破坏文件结构
+  # 编译指令优化：追加 KCFLAGS="-Wno-error" 完美降级警告拦截
   CUSTOM_CMDS : "CROSS_COMPILE=aarch64-linux-gnu- CLANG_TRIPLE=aarch64-linux-gnu-"
   EXTRA_CMDS : "LLVM=1 LLVM_IAS=1 KCFLAGS=-Wno-error"
 
@@ -16,7 +16,7 @@ env:
   KERNEL_SOURCE : "https://github.com/Evolution-X-Devices/kernel_oneplus_sm8250.git"
   KERNEL_BRANCH : "bka"
 
-  # Google 官方 AOSP Clang 工具链（完美兼容 Android 16）
+  # Google 官方 AOSP Clang 工具链
   CLANG_SOURCE : "https://github.com/bachnxuan/aosp_clang_mirror/releases/download/clang-r574158-14475230/clang-r574158.tar.gz"
   CLANG_BRANCH : ""
 
@@ -34,7 +34,7 @@ env:
   KERNELSU_SOURCE : ""
   KERNELSU_BRANCH : ""
 
-  # 自动集成 KernelSU Next 
+  # 自动集成 KernelSU 
   KERNELSU_AUTO_GET : "true"
   KERNELSU_AUTO_FORK : "resukisu"
 
@@ -42,8 +42,8 @@ env:
   SUSFS_ENABLE : true
   SUSFS_FIXED : false
 
-  # 你的专属 AnyKernel3 仓库
-  AK3_SOURCE : "https://github.com/xiaoxian023/anykernel3/AnyKernel3.git"
+  # 已替换为官方 AnyKernel3 仓库
+  AK3_SOURCE : "https://github.com/osm0sis/AnyKernel3.git"
   AK3_BRANCH : "master"
 
   BOOT_SOURCE : ""
@@ -99,7 +99,7 @@ jobs:
       - name: 🔗 Patch for no-kprobe
         uses: ./.github/workflows/patch-no-kprobe
 
-      - name: 🧰 Patch Kernel of Re:Kernel
+      - name: 𧓢 Patch Kernel of Re:Kernel
         uses: ./.github/workflows/patch-rekernel
 
       - name: 🔒 Patch Kernel of Baseband Guard

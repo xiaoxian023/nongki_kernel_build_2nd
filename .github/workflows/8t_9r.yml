@@ -95,10 +95,11 @@ jobs:
       - name: 🪛 Extra Kernel Options
         run: |
           cd $GITHUB_WORKSPACE/device_kernel
-          # 独家优化：智能修复 4.19 老内核上缺失的未解密数据挂载变量，将其安全常数化
-          if [ -f fs/namespace.c ]; then
-            sed -i 's/static_branch_unlikely(&susfs_is_sdcard_android_data_not_decrypted)/0/g' fs/namespace.c
-          fi
+          # 终极修复：全局扫描并自动外挂修复 4.19/5.4 内核在 Android 16 下缺失的 SUSFS 解密挂载静态变量
+          grep -rl "susfs_is_sdcard_android_data_not_decrypted" . | while read -r file; do
+            echo "Fixing SUSFS variable in: $file"
+            sed -i '1s/^/#include <linux\/jump_label.h>\nstatic struct static_key_false susfs_is_sdcard_android_data_not_decrypted __attribute__((unused)) = STATIC_KEY_FALSE_INIT;\n/' "$file"
+          done
 
       - name: 🧰 Patch Kernel of Re:Kernel
         uses: ./.github/workflows/patch-rekernel

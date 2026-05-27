@@ -1,4 +1,4 @@
-Name: Build OnePlus 9 / 9 Pro (Evolution X 16 A16)
+name: Build OnePlus 9 / 9 Pro (Evolution X 16 A16)
 
 on:
   workflow_dispatch:

@@ -1,19 +1,22 @@
-name: Build OnePlus 8T / 9R (Evolution X 16 A16)
+name: Build Oneplus 8T (Evolution X A16)
 
 on:
+  workflow_call:
   workflow_dispatch:
 
 env:
-  DEVICE_NAME : "OnePlus 8T"
+  # Device env
+  DEVICE_NAME : "oneplus_8t"
   DEVICE_CODENAME : "kebab"
 
-  CUSTOM_CMDS : "CROSS_COMPILE=aarch64-linux-gnu- CLANG_TRIPLE=aarch64-linux-gnu-"
-  EXTRA_CMDS : "LLVM=1 LLVM_IAS=1 KCFLAGS=-Wno-error"
+  CUSTOM_CMDS : "CLANG_TRIPLE=aarch64-linux-gnu-"
+  EXTRA_CMDS : "BRAND_SHOW_FLAG=oneplus LD=ld.lld LLVM=1 LLVM_IAS=1"
 
-  KERNEL_SOURCE : "https://github.com/Evolution-X-Devices/kernel_oneplus_sm8250.git"
-  KERNEL_BRANCH : "bka"
+  # 请根据实际的 Evolution X A16 内核源码仓库和分支进行替换
+  KERNEL_SOURCE : "https://github.com/JackA1ltman/android_kernel_oneplus_sm8250_los_noksu.git"
+  KERNEL_BRANCH : "upstream-latest"
 
-  CLANG_SOURCE : "https://github.com/bachnxuan/aosp_clang_mirror/releases/download/clang-r574158-14475230/clang-r574158.tar.gz"
+  CLANG_SOURCE : "https://github.com/llvm/llvm-project/releases/download/llvmorg-20.1.0/LLVM-20.1.0-Linux-X64.tar.xz"
   CLANG_BRANCH : ""
 
   GCC_GNU : false
@@ -27,50 +30,70 @@ env:
   DEFCONFIG_ORIGIN_IMAGE: ""
   DEFCONFIG_FROM_BOOT: false
 
-  KERNELSU_SOURCE : ""
-  KERNELSU_BRANCH : ""
+  KERNELSU_SOURCE : "https://raw.githubusercontent.com/tiann/KernelSU/refs/heads/main/kernel/setup.sh"
+  KERNELSU_BRANCH : "v0.9.5"
 
-  KERNELSU_AUTO_GET : "true"
-  KERNELSU_AUTO_FORK : "resukisu"
+  KERNELSU_AUTO_GET : "true" # if u want easy setting kernelsu, u can true.
+  KERNELSU_AUTO_FORK : "resukisu" # xxksu, rsuntk, next, resukisu and sukisu
 
-  SUSFS_ENABLE : false
-  SUSFS_FIXED : false
+  SUSFS_ENABLE : true
+  SUSFS_FIXED : true
 
   AK3_SOURCE : "https://github.com/osm0sis/AnyKernel3.git"
   AK3_BRANCH : "master"
 
   BOOT_SOURCE : ""
+
   NEED_DTBO : false
   NEED_SAFE_DTBO : false
-  ROM_TEXT : "evox16_a16"
-  PYTHON_VERSION: "3"
-  PACK_METHOD: "Anykernel3"
-  PACK_KMODULES: "false"
-  KERNELSU_METHOD: "shell"
-  PATCHES_SOURCE: ""
-  PATCHES_BRANCH: ""
-  SUSFS_FOLDER_FIXED: ""
-  SUSFS_PATCH_FIXED: ""
-  REKERNEL_ENABLE: "false"
-  HOOK_METHOD: "syscall"
-  KERNEL_PATCH: "false"
-  KPM_ENABLE: "false"
-  KPM_INLINE: "false"
-  KPM_KPATCH_NEXT: "false"
-  KPM_PATCH_SOURCE: ""
-  BASEBAND_GUARD_ENABLE: "false"
-  BASEBAND_GUARD_BOOT: "false"
-  GENERATE_DTB: "true"
-  GENERATE_CHIP: "qcom"
-  BUILD_DEBUGGER: "false"
-  SKIP_PATCH: "false"
-  BUILD_OTHER_CONFIG: "false"
-  FREE_MORE_SPACE: "true"
+
+  ROM_TEXT : "evolutionx_a16"
+
+  # Other env
+  PYTHON_VERSION: "3" # Only 2(Ubuntu 22.04 and Ubuntu 20.04) or 3(Any OS Versions).
+
+  PACK_METHOD: "Anykernel3" # Anykernel3 need SOURCE and BRANCH, MKBOOTIMG needn't it.
+  PACK_KMODULES: "false" # if u want pack kernel modules (.ko) into Anykernel3.
+
+  KERNELSU_METHOD: "shell" # shell, manual and only.
+
+  PATCHES_SOURCE: "JackA1ltman/NonGKI_Kernel_Patches" # [your_name]/[your_patch] -> gooder123/NonGKI_Patcher
+  PATCHES_BRANCH: "op_kernel" # [your_branch] -> main
+
+  # 注意：请确保你的补丁仓库中存在对应的 A16 目录，这里预设为 kona_evo_a16
+  SUSFS_FOLDER_FIXED: "kona_evo_a16" # Fill in your patch prefix directory here. Leave it blank if there isn't one. -> your_folder
+  SUSFS_PATCH_FIXED: "susfs_fixed" # Fill in your patches here. If there are multiple patches, please separate them with a comma. Leave it blank if there isn't one. -> patch1,patch2
+
+  REKERNEL_ENABLE: "false" # if u need Re:Kernel.
+
+  HOOK_METHOD: "syscall" # Manual hook method ->  syscall.
+
+  KERNEL_PATCH: "false" # If your kernel version is <= 4.9, you have the option of enabling the patch to patch the kernel_write and kernel_read functions.
+
+  KPM_ENABLE: "true" # Anyone devices.
+  KPM_INLINE: "true" # Only use it for SukiSU-Ultra.
+  KPM_KPATCH_NEXT: "false" # If u want hook KPatch-Next in build step.
+  KPM_PATCH_SOURCE: "https://raw.githubusercontent.com/SukiSU-Ultra/SukiSU_patch/refs/heads/main/kpm/patch_linux" # If u want to use KPM Inline,so you need set patch exec file source -> raw.githubusercontent.com/Test/Test/patch .
+
+  BASEBAND_GUARD_ENABLE: "true" #if u want prevent unauthorized writes to critical partitions/device nodes.
+  BASEBAND_GUARD_BOOT: "false" #if u want to protect boot partition.
+
+  GENERATE_DTB: "false" # if u kernel need DTB , but cannot auto generate it. (Only Anykernel3).
+  GENERATE_CHIP: "qcom" # only supported for qcom and mediatek.
+
+  BUILD_DEBUGGER: "false" # Output build errors.
+  SKIP_PATCH: "false" # Ignore errors found in Patch Debugger.
+
+  BUILD_OTHER_CONFIG: "false" # Merge config files.
+  MERGE_CONFIG_FILES: "vendor/debugfs.config,vendor/lahaina_QGKI.config"
+
+  FREE_MORE_SPACE: "false" # if u want get more space, enabled it.
 
 jobs:
   build-kernel:
-    name: OnePlus 8T / 9R (Evolution X 16 A16)
-    runs-on: ubuntu-latest
+    name: Oneplus 8T (Evolution X A16)
+    runs-on: ubuntu-latest # u can changed to ubuntu 22.04, and need container set ubuntu-latest
+    # container: ubuntu:bionic # if u need use arch linux -> archlinux/archlinux:latest or ubuntu 20.04 -> ubuntu:focal
     env:
       CCACHE_COMPILERCHECK: "%compiler% -dumpmachine; %compiler% -dumpversion"
       CCACHE_NOHASHDIR: "true"
@@ -78,7 +101,7 @@ jobs:
 
     steps:
       - name: ⏰ Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: ⌛️ Compilation environment preparation
         uses: ./.github/workflows/build-env
@@ -94,12 +117,10 @@ jobs:
 
       - name: 🪛 Extra Kernel Options
         run: |
+          # Only ${{ env.DEVICE_NAME }} use it.
           cd $GITHUB_WORKSPACE/device_kernel
-          # 终极修复：全局扫描并自动外挂修复 4.19/5.4 内核在 Android 16 下缺失的 SUSFS 解密挂载静态变量
-          grep -rl "susfs_is_sdcard_android_data_not_decrypted" . | while read -r file; do
-            echo "Fixing SUSFS variable in: $file"
-            sed -i '1s/^/#include <linux\/jump_label.h>\nstatic struct static_key_false susfs_is_sdcard_android_data_not_decrypted __attribute__((unused)) = STATIC_KEY_FALSE_INIT;\n/' "$file"
-          done
+
+          # Nothing
 
       - name: 🧰 Patch Kernel of Re:Kernel
         uses: ./.github/workflows/patch-rekernel
@@ -109,6 +130,15 @@ jobs:
 
       - name: 🚀 Build Process
         uses: ./.github/workflows/build-process
+
+      - name: ❗ Oneplus 8T Remove files
+        run: |
+          # Only ${{ env.DEVICE_NAME }} use it.
+          cd $GITHUB_WORKSPACE/device_kernel
+
+          rm -f out/arch/arm64/boot/dtbo.img
+          rm -f out/arch/arm64/boot/dtb
+          echo "Removed dtbo.img and dtb for Oneplus 8T."
 
       - name: 🔩 Pack Process
         uses: ./.github/workflows/pack-process

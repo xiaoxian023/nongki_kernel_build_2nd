@@ -69,7 +69,7 @@ jobs:
         if: ${{ github.event.inputs.ENABLE_SUSFS == 'true' }}
         run: |
           cd $GITHUB_WORKSPACE
-          git clone --depth=1 https://gitlab.com/khj0525/susfs4linux.git
+          git clone --depth=1 https://github.com/ash974/susfs4linux.git
           cd $GITHUB_WORKSPACE/kernel-source
           cp $GITHUB_WORKSPACE/susfs4linux/fs/* fs/
           cp $GITHUB_WORKSPACE/susfs4linux/include/linux/susfs.h include/linux/

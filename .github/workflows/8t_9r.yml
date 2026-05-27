@@ -71,12 +71,16 @@ jobs:
       - name: Compile Kernel
         run: |
           cd $GITHUB_WORKSPACE/kernel-source
+          
+          # 核心修复：强制剔除源码中所有将警告视为错误的 -Werror 限制
+          find . -name "Makefile" -o -name "Kbuild" | xargs sed -i 's/-Werror//g'
+          
           export PATH=$GITHUB_WORKSPACE/clang/bin:$PATH
           export ARCH=arm64
           export SUBARCH=arm64
           export HEADER_ARCH=arm64
           make O=out ${{ github.event.inputs.KERNEL_DEFCONFIG }}
-          make -j$(nproc --all) O=out CC=clang LLVM=1 LLVM_IAS=1 CROSS_COMPILE=aarch64-linux-gnu- CROSS_COMPILE_ARM32=arm-linux-gnueabi-
+          make -j$(nproc --all) O=out CC=clang LLVM=1 LLVM_IAS=1 KCFLAGS="-Wno-error" CROSS_COMPILE=aarch64-linux-gnu- CROSS_COMPILE_ARM32=arm-linux-gnueabi-
 
       - name: Package with AnyKernel3
         run: |

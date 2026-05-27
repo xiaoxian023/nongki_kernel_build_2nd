@@ -72,8 +72,8 @@ jobs:
         run: |
           cd $GITHUB_WORKSPACE/kernel-source
           
-          # 核心修复：强制剔除源码中所有将警告视为错误的 -Werror 限制
-          find . -name "Makefile" -o -name "Kbuild" | xargs sed -i 's/-Werror//g'
+          # 核心修复：精准、完整地切除所有 -Werror、-Werror=xxx、-Werror-xxx，绝不留下残缺等号
+          find . \( -name "Makefile" -o -name "Kbuild" -o -name "*.mk" -o -name "Makefile.build" \) -type f -exec sed -i 's/-Werror[^ ]*//g' {} +
           
           export PATH=$GITHUB_WORKSPACE/clang/bin:$PATH
           export ARCH=arm64

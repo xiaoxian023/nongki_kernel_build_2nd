@@ -4,19 +4,15 @@ on:
   workflow_dispatch:
 
 env:
-  # 设备环境配置
   DEVICE_NAME : "OnePlus 8T"
   DEVICE_CODENAME : "kebab"
 
-  # 编译指令优化：追加 KCFLAGS="-Wno-error" 完美降级警告拦截
   CUSTOM_CMDS : "CROSS_COMPILE=aarch64-linux-gnu- CLANG_TRIPLE=aarch64-linux-gnu-"
   EXTRA_CMDS : "LLVM=1 LLVM_IAS=1 KCFLAGS=-Wno-error"
 
-  # 源码与分支
   KERNEL_SOURCE : "https://github.com/Evolution-X-Devices/kernel_oneplus_sm8250.git"
   KERNEL_BRANCH : "bka"
 
-  # Google 官方 AOSP Clang 工具链
   CLANG_SOURCE : "https://github.com/bachnxuan/aosp_clang_mirror/releases/download/clang-r574158-14475230/clang-r574158.tar.gz"
   CLANG_BRANCH : ""
 
@@ -34,15 +30,12 @@ env:
   KERNELSU_SOURCE : ""
   KERNELSU_BRANCH : ""
 
-  # 自动集成 KernelSU 
   KERNELSU_AUTO_GET : "true"
   KERNELSU_AUTO_FORK : "resukisu"
 
-  # 自动集成 SUSFS
   SUSFS_ENABLE : true
   SUSFS_FIXED : false
 
-  # 已替换为官方 AnyKernel3 仓库
   AK3_SOURCE : "https://github.com/osm0sis/AnyKernel3.git"
   AK3_BRANCH : "master"
 
@@ -99,7 +92,15 @@ jobs:
       - name: 🔗 Patch for no-kprobe
         uses: ./.github/workflows/patch-no-kprobe
 
-      - name: 𧓢 Patch Kernel of Re:Kernel
+      - name: 🪛 Extra Kernel Options
+        run: |
+          cd $GITHUB_WORKSPACE/device_kernel
+          # 独家优化：智能修复 4.19 老内核上缺失的未解密数据挂载变量，将其安全常数化
+          if [ -f fs/namespace.c ]; then
+            sed -i 's/static_branch_unlikely(&susfs_is_sdcard_android_data_not_decrypted)/0/g' fs/namespace.c
+          fi
+
+      - name: 🧰 Patch Kernel of Re:Kernel
         uses: ./.github/workflows/patch-rekernel
 
       - name: 🔒 Patch Kernel of Baseband Guard

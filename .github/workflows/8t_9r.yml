@@ -63,10 +63,10 @@ jobs:
         if: ${{ github.event.inputs.ENABLE_SUSFS == 'true' }}
         run: |
           cd $GITHUB_WORKSPACE
-          git clone --depth=1 https://github.com/ash974/susfs4linux.git
+          git clone --depth=1 https://github.com/ShirkNeko/susfs4ksu.git $GITHUB_WORKSPACE/susfs4ksu
           cd $GITHUB_WORKSPACE/kernel-source
-          cp $GITHUB_WORKSPACE/susfs4linux/fs/* fs/
-          cp $GITHUB_WORKSPACE/susfs4linux/include/linux/susfs.h include/linux/
+          cp $GITHUB_WORKSPACE/susfs4ksu/kernel_patches/fs/* fs/
+          cp $GITHUB_WORKSPACE/susfs4ksu/kernel_patches/include/linux/susfs.h include/linux/
 
       - name: Compile Kernel
         run: |

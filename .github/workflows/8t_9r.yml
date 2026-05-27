@@ -14,14 +14,6 @@ on:
         description: 'Kernel Defconfig'
         required: true
         default: 'vendor/kona-perf_defconfig'
-      CLANG_URL:
-        description: 'Clang URL'
-        required: true
-        default: 'https://github.com/ZyC-X/zyc-clang.git'
-      CLANG_BRANCH:
-        description: 'Clang Branch'
-        required: true
-        default: 'main'
       ANYKERNEL3_URL:
         description: 'AnyKernel3 URL'
         required: true
@@ -53,9 +45,15 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y bc bison build-essential ccache curl flex g++-multilib gcc-multilib git gnupg gperf lib32readline-dev lib32z1-dev liblz4-tool libncurses5-dev libsdl1.2-dev libssl-dev libxml2 libxml2-utils lzop pngcrush rsync schedtool squashfs-tools xsltproc zip zlib1g-dev python3 libncurses5
 
-      - name: Clone Clang Toolchain
+      - name: Download Clang Toolchain
         run: |
-          git clone --depth=1 ${{ github.event.inputs.CLANG_URL }} -b ${{ github.event.inputs.CLANG_BRANCH }} $GITHUB_WORKSPACE/clang
+          mkdir -p $GITHUB_WORKSPACE/clang
+          cd $GITHUB_WORKSPACE/clang
+          CLANG_URL=$(curl -sSL https://raw.githubusercontent.com/ZyCromerZ/Clang/main/Clang-main-link.txt)
+          echo "Downloading ZyC Clang from: $CLANG_URL"
+          curl -L "$CLANG_URL" -o zyc-clang.tar.gz
+          tar -xf zyc-clang.tar.gz
+          rm -f zyc-clang.tar.gz
 
       - name: Clone Kernel Source
         run: |

@@ -1,0 +1,111 @@
+name: Build OnePlus 9RT (LineageOS 23)
+on:
+  workflow_dispatch:
+    inputs:
+      KERNEL_SOURCE:
+        description: 'Kernel Source'
+        required: true
+        default: 'https://github.com/LineageOS/android_kernel_oneplus_sm8350'
+      KERNEL_BRANCH:
+        description: 'Kernel Branch'
+        required: true
+        default: 'lineage-23.0'
+      KERNEL_DEFCONFIG:
+        description: 'Kernel Defconfig'
+        required: true
+        default: 'vendor/lahaina-qgki_defconfig'
+      CLANG_URL:
+        description: 'Clang URL'
+        required: true
+        default: 'https://github.com/ZyC-X/zyc-clang.git'
+      CLANG_BRANCH:
+        description: 'Clang Branch'
+        required: true
+        default: 'main'
+      ANYKERNEL3_URL:
+        description: 'AnyKernel3 URL'
+        required: true
+        default: 'https://github.com/xiaoxian023/anykernel3/AnyKernel3.git'
+      ANYKERNEL3_BRANCH:
+        description: 'AnyKernel3 Branch'
+        required: true
+        default: 'master'
+      ENABLE_KERNELSU:
+        description: 'Enable KernelSU'
+        required: true
+        type: boolean
+        default: true
+      ENABLE_SUSFS:
+        description: 'Enable SUSFS'
+        required: true
+        type: boolean
+        default: true
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Install Build Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y bc bison build-essential ccache curl flex g++-multilib gcc-multilib git gnupg gperf lib32readline-dev lib32z1-dev liblz4-tool libncurses5-dev libsdl1.1-dev libssl-dev libxml2 libxml2-utils lzop pngcrush rsync schedtool squashfs-tools xsltproc zip zlib1g-dev python3 libncurses5
+
+      - name: Clone Clang Toolchain
+        run: |
+          git clone --depth=1 ${{ github.event.inputs.CLANG_URL }} -b ${{ github.event.inputs.CLANG_BRANCH }} $GITHUB_WORKSPACE/clang
+
+      - name: Clone Kernel Source
+        run: |
+          git clone --depth=1 ${{ github.event.inputs.KERNEL_SOURCE }} -b ${{ github.event.inputs.KERNEL_BRANCH }} $GITHUB_WORKSPACE/kernel-source
+
+      - name: Setup KernelSU
+        if: ${{ github.event.inputs.ENABLE_KERNELSU == 'true' }}
+        run: |
+          cd $GITHUB_WORKSPACE/kernel-source
+          curl -LSs "https://raw.githubusercontent.com/tiann/KernelSU/main/kernel/setup.sh" | bash -s main
+
+      - name: Setup SUSFS
+        if: ${{ github.event.inputs.ENABLE_SUSFS == 'true' }}
+        run: |
+          cd $GITHUB_WORKSPACE
+          git clone --depth=1 https://gitlab.com/khj0525/susfs4linux.git
+          cd $GITHUB_WORKSPACE/kernel-source
+          cp $GITHUB_WORKSPACE/susfs4linux/fs/* fs/
+          cp $GITHUB_WORKSPACE/susfs4linux/include/linux/susfs.h include/linux/
+
+      - name: Compile Kernel
+        run: |
+          cd $GITHUB_WORKSPACE/kernel-source
+          export PATH=$GITHUB_WORKSPACE/clang/bin:$PATH
+          export ARCH=arm64
+          export SUBARCH=arm64
+          export HEADER_ARCH=arm64
+          make O=out ${{ github.event.inputs.KERNEL_DEFCONFIG }}
+          make -j$(nproc --all) O=out CC=clang LLVM=1 LLVM_IAS=1 CROSS_COMPILE=aarch64-linux-gnu- CROSS_COMPILE_ARM32=arm-linux-gnueabi-
+
+      - name: Package with AnyKernel3
+        run: |
+          cd $GITHUB_WORKSPACE
+          git clone ${{ github.event.inputs.ANYKERNEL3_URL }} -b ${{ github.event.inputs.ANYKERNEL3_BRANCH }} AnyKernel3
+          
+          if [ -f $GITHUB_WORKSPACE/kernel-source/out/arch/arm64/boot/Image.gz-dtb ]; then
+            cp $GITHUB_WORKSPACE/kernel-source/out/arch/arm64/boot/Image.gz-dtb AnyKernel3/
+          elif [ -f $GITHUB_WORKSPACE/kernel-source/out/arch/arm64/boot/Image-dtb ]; then
+            cp $GITHUB_WORKSPACE/kernel-source/out/arch/arm64/boot/Image-dtb AnyKernel3/
+          elif [ -f $GITHUB_WORKSPACE/kernel-source/out/arch/arm64/boot/Image.gz ]; then
+            cp $GITHUB_WORKSPACE/kernel-source/out/arch/arm64/boot/Image.gz AnyKernel3/
+          elif [ -f $GITHUB_WORKSPACE/kernel-source/out/arch/arm64/boot/Image ]; then
+            cp $GITHUB_WORKSPACE/kernel-source/out/arch/arm64/boot/Image AnyKernel3/
+          fi
+          
+          cd AnyKernel3
+          zip -r9 ../9rt-kernel-update.zip * -x .git* README.md
+
+      - name: Upload Kernel Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Oneplus-9RT-Kernel
+          path: 9rt-kernel-update.zip

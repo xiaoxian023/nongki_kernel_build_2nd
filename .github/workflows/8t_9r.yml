@@ -9,7 +9,7 @@ on:
       KERNEL_BRANCH:
         description: 'Kernel Branch'
         required: true
-        default: '16'
+        default: 'bka'
       KERNEL_DEFCONFIG:
         description: 'Kernel Defconfig'
         required: true

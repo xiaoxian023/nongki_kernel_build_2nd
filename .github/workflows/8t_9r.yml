@@ -1,109 +1,115 @@
-name: Build OnePlus 8T / 9R (Evolution X 16)
+Name: Build OnePlus 8T / 9R (Evolution X 16 A16)
+
 on:
   workflow_dispatch:
-    inputs:
-      KERNEL_SOURCE:
-        description: 'Kernel Source'
-        required: true
-        default: 'https://github.com/Evolution-X-Devices/kernel_oneplus_sm8250'
-      KERNEL_BRANCH:
-        description: 'Kernel Branch'
-        required: true
-        default: 'bka'
-      KERNEL_DEFCONFIG:
-        description: 'Kernel Defconfig'
-        required: true
-        default: 'vendor/kona-perf_defconfig'
-      ANYKERNEL3_URL:
-        description: 'AnyKernel3 URL'
-        required: true
-        default: 'https://github.com/xiaoxian023/anykernel3/AnyKernel3.git'
-      ANYKERNEL3_BRANCH:
-        description: 'AnyKernel3 Branch'
-        required: true
-        default: 'master'
-      ENABLE_KERNELSU:
-        description: 'Enable KernelSU'
-        required: true
-        type: boolean
-        default: true
-      ENABLE_SUSFS:
-        description: 'Enable SUSFS'
-        required: true
-        type: boolean
-        default: true
+
+env:
+  # 设备环境配置
+  DEVICE_NAME : "OnePlus 8T"
+  DEVICE_CODENAME : "kebab"
+
+  # 编译指令优化：在此处追加 KCFLAGS="-Wno-error" 完美降级警告拦截，不破坏文件结构
+  CUSTOM_CMDS : "CROSS_COMPILE=aarch64-linux-gnu- CLANG_TRIPLE=aarch64-linux-gnu-"
+  EXTRA_CMDS : "LLVM=1 LLVM_IAS=1 KCFLAGS=-Wno-error"
+
+  # 源码与分支
+  KERNEL_SOURCE : "https://github.com/Evolution-X-Devices/kernel_oneplus_sm8250.git"
+  KERNEL_BRANCH : "bka"
+
+  # Google 官方 AOSP Clang 工具链（完美兼容 Android 16）
+  CLANG_SOURCE : "https://github.com/bachnxuan/aosp_clang_mirror/releases/download/clang-r574158-14475230/clang-r574158.tar.gz"
+  CLANG_BRANCH : ""
+
+  GCC_GNU : false
+  GCC_64_SOURCE : "https://android.googlesource.com/platform/prebuilts/gcc/linux-x86/aarch64/aarch64-linux-android-4.9.git"
+  GCC_64_BRANCH : "android12L-release"
+  GCC_32_SOURCE : "https://android.googlesource.com/platform/prebuilts/gcc/linux-x86/arm/arm-linux-androideabi-4.9.git"
+  GCC_32_BRANCH : "android12L-release"
+
+  DEFCONFIG_SOURCE: ""
+  DEFCONFIG_NAME : "vendor/kona-perf_defconfig"
+  DEFCONFIG_ORIGIN_IMAGE: ""
+  DEFCONFIG_FROM_BOOT: false
+
+  KERNELSU_SOURCE : ""
+  KERNELSU_BRANCH : ""
+
+  # 自动集成 KernelSU Next 
+  KERNELSU_AUTO_GET : "true"
+  KERNELSU_AUTO_FORK : "resukisu"
+
+  # 自动集成 SUSFS
+  SUSFS_ENABLE : true
+  SUSFS_FIXED : false
+
+  # 你的专属 AnyKernel3 仓库
+  AK3_SOURCE : "https://github.com/xiaoxian023/anykernel3/AnyKernel3.git"
+  AK3_BRANCH : "master"
+
+  BOOT_SOURCE : ""
+  NEED_DTBO : false
+  NEED_SAFE_DTBO : false
+  ROM_TEXT : "evox16_a16"
+  PYTHON_VERSION: "3"
+  PACK_METHOD: "Anykernel3"
+  PACK_KMODULES: "false"
+  KERNELSU_METHOD: "shell"
+  PATCHES_SOURCE: ""
+  PATCHES_BRANCH: ""
+  SUSFS_FOLDER_FIXED: ""
+  SUSFS_PATCH_FIXED: ""
+  REKERNEL_ENABLE: "false"
+  HOOK_METHOD: "syscall"
+  KERNEL_PATCH: "false"
+  KPM_ENABLE: "false"
+  KPM_INLINE: "false"
+  KPM_KPATCH_NEXT: "false"
+  KPM_PATCH_SOURCE: ""
+  BASEBAND_GUARD_ENABLE: "false"
+  BASEBAND_GUARD_BOOT: "false"
+  GENERATE_DTB: "true"
+  GENERATE_CHIP: "qcom"
+  BUILD_DEBUGGER: "false"
+  SKIP_PATCH: "false"
+  BUILD_OTHER_CONFIG: "false"
+  FREE_MORE_SPACE: "true"
 
 jobs:
-  build:
-    runs-on: ubuntu-22.04
+  build-kernel:
+    name: OnePlus 8T / 9R (Evolution X 16 A16)
+    runs-on: ubuntu-latest
+    env:
+      CCACHE_COMPILERCHECK: "%compiler% -dumpmachine; %compiler% -dumpversion"
+      CCACHE_NOHASHDIR: "true"
+      CCACHE_HARDLINK: "true"
+
     steps:
-      - name: Checkout Repository
+      - name: ⏰ Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install Build Dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y bc bison build-essential ccache curl flex g++-multilib gcc-multilib git gnupg gperf lib32readline-dev lib32z1-dev liblz4-tool libncurses5-dev libsdl1.2-dev libssl-dev libxml2 libxml2-utils lzop pngcrush rsync schedtool squashfs-tools xsltproc zip zlib1g-dev python3 libncurses5
+      - name: ⌛️ Compilation environment preparation
+        uses: ./.github/workflows/build-env
 
-      - name: Clone Proton Clang Toolchain
-        run: |
-          git clone --depth=1 https://github.com/kdrag0n/proton-clang.git $GITHUB_WORKSPACE/clang
+      - name: ⚙️ Get neccssary tools
+        uses: ./.github/workflows/build-ready
 
-      - name: Clone Kernel Source
-        run: |
-          git clone --depth=1 ${{ github.event.inputs.KERNEL_SOURCE }} -b ${{ github.event.inputs.KERNEL_BRANCH }} $GITHUB_WORKSPACE/kernel-source
+      - name: 🪝 Patch Kernel of SUSFS
+        uses: ./.github/workflows/patch-susfs
 
-      - name: Setup KernelSU
-        if: ${{ github.event.inputs.ENABLE_KERNELSU == 'true' }}
-        run: |
-          cd $GITHUB_WORKSPACE/kernel-source
-          curl -LSs "https://raw.githubusercontent.com/tiann/KernelSU/main/kernel/setup.sh" | bash -s main
+      - name: 🔗 Patch for no-kprobe
+        uses: ./.github/workflows/patch-no-kprobe
 
-      - name: Setup SUSFS
-        if: ${{ github.event.inputs.ENABLE_SUSFS == 'true' }}
-        run: |
-          cd $GITHUB_WORKSPACE
-          git clone --depth=1 https://github.com/ShirkNeko/susfs4ksu.git $GITHUB_WORKSPACE/susfs4ksu
-          cd $GITHUB_WORKSPACE/kernel-source
-          cp $GITHUB_WORKSPACE/susfs4ksu/kernel_patches/fs/* fs/
-          cp $GITHUB_WORKSPACE/susfs4ksu/kernel_patches/include/linux/susfs.h include/linux/
+      - name: 🧰 Patch Kernel of Re:Kernel
+        uses: ./.github/workflows/patch-rekernel
 
-      - name: Compile Kernel
-        run: |
-          cd $GITHUB_WORKSPACE/kernel-source
-          
-          # 终极修复：将强制报错的 -Werror 智能替换为警告放行的 -Wno-error，100% 保护 Makefile 宏函数结构
-          find . \( -name "Makefile" -o -name "Kbuild" -o -name "*.mk" -o -name "Makefile.build" \) -type f -exec perl -pi -e 's/(?<!no-) -Werror/ -Wno-error/g' {} +
-          find . \( -name "Makefile" -o -name "Kbuild" -o -name "*.mk" -o -name "Makefile.build" \) -type f -exec perl -pi -e 's/(?<!no-)-Werror-/-Wno-error-/g' {} +
-          find . \( -name "Makefile" -o -name "Kbuild" -o -name "*.mk" -o -name "Makefile.build" \) -type f -exec perl -pi -e 's/(?<!no-)-Werror=/ -Wno-error=/g' {} +
-          
-          export PATH=$GITHUB_WORKSPACE/clang/bin:$PATH
-          export ARCH=arm64
-          export SUBARCH=arm64
-          export HEADER_ARCH=arm64
-          make O=out ${{ github.event.inputs.KERNEL_DEFCONFIG }}
-          make -j$(nproc --all) O=out CC=clang LLVM=1 LLVM_IAS=1 KCFLAGS="-Wno-error" CROSS_COMPILE=aarch64-linux-gnu- CROSS_COMPILE_ARM32=arm-linux-gnueabi-
+      - name: 🔒 Patch Kernel of Baseband Guard
+        uses: ./.github/workflows/patch-baseband-guard
 
-      - name: Package with AnyKernel3
-        run: |
-          cd $GITHUB_WORKSPACE
-          git clone ${{ github.event.inputs.ANYKERNEL3_URL }} -b ${{ github.event.inputs.ANYKERNEL3_BRANCH }} AnyKernel3
-          
-          if [ -f $GITHUB_WORKSPACE/kernel-source/out/arch/arm64/boot/Image.gz-dtb ]; then
-            cp $GITHUB_WORKSPACE/kernel-source/out/arch/arm64/boot/Image.gz-dtb AnyKernel3/
-          elif [ -f $GITHUB_WORKSPACE/kernel-source/out/arch/arm64/boot/Image-dtb ]; then
-            cp $GITHUB_WORKSPACE/kernel-source/out/arch/arm64/boot/Image-dtb AnyKernel3/
-          elif [ -f $GITHUB_WORKSPACE/kernel-source/out/arch/arm64/boot/Image.gz ]; then
-            cp $GITHUB_WORKSPACE/kernel-source/out/arch/arm64/boot/Image.gz AnyKernel3/
-          elif [ -f $GITHUB_WORKSPACE/kernel-source/out/arch/arm64/boot/Image ]; then
-            cp $GITHUB_WORKSPACE/kernel-source/out/arch/arm64/boot/Image AnyKernel3/
-          fi
-          
-          cd AnyKernel3
-          zip -r9 ../8t-9r-kernel-update.zip * -x .git* README.md
+      - name: 🚀 Build Process
+        uses: ./.github/workflows/build-process
 
-      - name: Upload Kernel Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: Oneplus-8T-9R-Kernel
-          path: 8t-9r-kernel-update.zip
+      - name: 🔩 Pack Process
+        uses: ./.github/workflows/pack-process
+
+      - name: ✏️ Upload Artifacts
+        uses: ./.github/workflows/upload-files
